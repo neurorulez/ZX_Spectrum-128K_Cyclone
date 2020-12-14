@@ -617,10 +617,10 @@ ioctl_index <= X"00" when host_loadrom = '1' else
 					X"43" when extension(23 downto 0)  = x"534e41" else --SNAP   - sna								
 			      X"FF";
 					
-ioctl_start_addr <= x"150000" when host_loadrom = '1' else
-						  x"200000" when host_loadmed = '1' and (extension(23 downto 0)  = x"545244" or extension(23 downto 0)  = x"44534B") else  --dsk o trd
-						  x"400000" when host_loadmed = '1' and (extension(23 downto 0)  = x"544150" or extension(23 downto 0)  = x"545a58" or extension(23 downto 0)  = x"435357") else  --tap o tzx o csw
-						  x"600000" when host_loadmed = '1' and (extension(23 downto 0)  = x"5a3830" or extension(23 downto 0)  = x"534e41") else  --tap o tzx						  
+ioctl_start_addr <= --x"150000" when host_loadrom = '1' else
+						  --x"200000" when host_loadmed = '1' and (extension(23 downto 0)  = x"545244" or extension(23 downto 0)  = x"44534B") else  --dsk o trd
+						  --x"400000" when host_loadmed = '1' and (extension(23 downto 0)  = x"544150" or extension(23 downto 0)  = x"545a58" or extension(23 downto 0)  = x"435357") else  --tap o tzx o csw
+						  --x"600000" when host_loadmed = '1' and (extension(23 downto 0)  = x"5a3830" or extension(23 downto 0)  = x"534e41") else  --tap o tzx						  
 						  x"000000";
 						  
 ioctl_addr <= std_logic_vector(unsigned(ioctl_addr_s) + unsigned(ioctl_start_addr));
