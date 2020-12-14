@@ -22,6 +22,7 @@
 //============================================================================
 module zxspectrum
 (
+`ifndef CYCLONE
    input         CLOCK_27,   // Input clock 27 MHz
 
    output  [5:0] VGA_R,
@@ -56,10 +57,88 @@ module zxspectrum
    output  [1:0] SDRAM_BA,
    output        SDRAM_CLK,
    output        SDRAM_CKE
+`else
+   // Clocks
+	input wire	CLOCK_50,
+	
+	output wire LED,
+	
+	// SRAMs (AS7C34096)
+	output wire	[20:0]sram_addr,
+	inout wire	[7:0]sram_data,
+	output wire	sram_we_n,
+	output wire	sram_oe_n, //Neptuno
+	output wire	sram_lb_n, //Neptuno
+	output wire	sram_ub_n, //Neptuno
+	
+	// SDRAM	(H57V256)
+	output wire	[12:0] SDRAM_A, 
+	inout wire	[15:0] SDRAM_DQ, 
+	output wire	[1:0] SDRAM_BA, 
+	output wire	SDRAM_DQML, 
+	output wire	SDRAM_DQMH, 
+	output wire	SDRAM_nRAS,
+	output wire	SDRAM_nCAS, 
+	output wire	SDRAM_CKE, 
+	output wire	SDRAM_CLK, 
+	output wire	SDRAM_nCS,
+	output wire	SDRAM_nWE,
+
+	// PS2
+	inout wire	ps2_clk,
+	inout wire	ps2_data,
+	inout wire	ps2_mouse_clk,
+	inout wire	ps2_mouse_data,
+
+	// SD Card
+	output wire	sd_cs_n,
+	output wire	sd_sclk,
+	output wire	sd_mosi,
+	input wire	sd_miso,
+
+	// Joysticks
+`ifndef JOYDC
+	output wire	JOY_CLK,
+	output wire	JOY_LOAD,
+	input  wire JOY_DATA,
+	output wire JOY_SELECT,
+`else
+	input	wire [5:0]joystick1,
+	input	wire [5:0]joystick2,
+`endif	
+	// Audio
+	output wire	AUDIO_L,
+	output wire	AUDIO_R,
+	input wire	UART_RX, //EAR_IN
+	output wire	UART_TX, //MOTOR_OUT
+
+	output wire	MCLK,
+	output wire	SCLK,
+	output wire	LRCLK,
+	output wire	SDIN,
+	
+		// VGA
+	output wire	[5:0]VGA_R, 
+	output wire	[5:0]VGA_G, 
+	output wire	[5:0]VGA_B, 
+	output wire	VGA_HS, 
+	output wire	VGA_VS,
+
+	output wire VGA_BLANK, //Reloaded
+	output wire VGA_CLOCK, //Reloaded
+
+	output wire stm_rst_o
+`endif	
 );
 `default_nettype none
 
 assign LED = ~(ioctl_download | tape_led);
+
+`ifdef CYCLONE
+assign stm_rst_o = 1'b0; 
+assign VGA_BLANK = 1'b1;
+assign VGA_CLOCK = clk_sys;
+`endif
 
 localparam CONF_BDI   = "(BDI)";
 localparam CONF_PLUSD = "(+D) ";
@@ -109,7 +188,11 @@ wire locked;
 
 pll pll
 (
+`ifndef CYCLONE
 	.inclk0(CLOCK_27),
+`else
+	.inclk0(CLOCK_50),
+`endif	
 	.c0(clk_sys),
 	.c1(SDRAM_CLK),
 	.locked(locked)
@@ -191,12 +274,21 @@ end
 wire [10:0] ps2_key;
 wire [24:0] ps2_mouse;
 
+`ifndef JOYDC
 wire  [7:0] joystick_0;
 wire  [7:0] joystick_1;
+`else
+wire  [7:0] joystick_0 = ~{1'b11,joystick1};;
+wire  [7:0] joystick_1 = ~{1'b11,joystick2};;
+`endif
 
 wire  [1:0] buttons;
 wire  [1:0] switches;
+`ifndef CYCLONE
 wire        scandoubler_disable;
+`else
+wire        scandoubler_disable = !host_scandoubler_disable;
+`endif
 wire        ypbpr;
 wire [31:0] status;
 
@@ -238,7 +330,7 @@ wire  [7:0] ioctl_dout;
 wire        ioctl_download;
 wire  [5:0] ioctl_index;
 wire  [1:0] ioctl_ext_index;
-
+`ifndef CYCLONE
 mist_io #(.STRLEN(($size(CONF_STR)>>3)+5)) mist_io
 (
 	.*,
@@ -254,8 +346,72 @@ mist_io #(.STRLEN(($size(CONF_STR)>>3)+5)) mist_io
 	.joystick_analog_0(),
 	.joystick_analog_1()
 );
+`else
+wire [7:0]R_OSD,G_OSD,B_OSD;
+wire host_scandoubler_disable;
 
+data_io data_io
+(
+	.clk(clk_sys),
+	.CLOCK_50(CLOCK_50), //Para modulos de I2s y Joystick
+	
+	.debug(),
+	
+	.reset_n(locked),
 
+	.vga_hsync(~HSync),
+	.vga_vsync(~VSync),
+	
+	.red_i({Rx,5'b00000}),
+	.green_i({Gx,5'b00000}),
+	.blue_i({Bx,5'b00000}),
+	.red_o(R_OSD),
+	.green_o(G_OSD),
+	.blue_o(B_OSD),
+	
+	.ps2k_clk_in(ps2_clk),
+	.ps2k_dat_in(ps2_data),
+	.host_scandoubler_disable(host_scandoubler_disable),
+
+	.kb_rows			( addr[15:8] ),
+	.kb_cols			( key_data   ),
+	.kb_teclasF		( Fn         ),
+	.kb_mod  		( mod        ),
+	
+`ifndef JOYDC
+	.JOY_CLK(JOY_CLK),
+	.JOY_LOAD(JOY_LOAD),
+	.JOY_DATA(JOY_DATA),
+	.JOY_SELECT(JOY_SELECT),
+	.joy1(joystick_0),
+	.joy2(joystick_1),
+`endif
+	.dac_MCLK(MCLK),
+	.dac_LRCK(LRCLK),
+	.dac_SCLK(SCLK),
+	.dac_SDIN(SDIN),
+	.L_data({1'b0, gs_l[14:0]} + {2'b00, psg_left,  3'b000} + {3'b000, ear_out, mic_out, tape_in, 10'd0}),
+	.R_data({1'b0, gs_r[14:0]} + {2'b00, psg_right, 3'b000} + {3'b000, ear_out, mic_out, tape_in, 10'd0}),
+	
+	.spi_miso(sd_miso),
+	.spi_mosi(sd_mosi),
+	.spi_clk(sd_sclk),
+	.spi_cs(sd_cs_n),
+
+	.img_mounted(img_mounted),
+	.img_size(img_size),
+
+	.status(status),
+	
+	.ioctl_ce(ce_14m),
+	.ioctl_wr(ioctl_wr),
+	.ioctl_addr(ioctl_addr),
+	.ioctl_dout(ioctl_dout),
+	.ioctl_download(ioctl_download),
+	.ioctl_index({ioctl_ext_index, ioctl_index}),
+	.ioctl_file_ext()
+);
+`endif
 ///////////////////   CPU   ///////////////////
 wire [15:0] addr;
 wire  [7:0] cpu_din;
@@ -786,6 +942,13 @@ ULA ULA(.*, .nPortRD(), .nPortWR(ula_nWR), .din(cpu_dout), .page_ram(page_ram[2:
 video_mixer #(.LINE_LENGTH(896), .HALF_DEPTH(1)) video_mixer
 (
 	.*,
+	
+`ifdef CYCLONE
+	.SPI_SCK(),
+	.SPI_SS3(),
+	.SPI_DI(),
+`endif
+	
 	.ce_pix(ce_7mp | ce_7mn),
 	.ce_pix_actual(ce_7mp | (mode512 & ce_7mn)),
 	.hq2x(scale == 1),
@@ -793,10 +956,15 @@ video_mixer #(.LINE_LENGTH(896), .HALF_DEPTH(1)) video_mixer
 
 	.line_start(0),
 	.ypbpr_full(1),
-
+`ifndef CYCLONE
 	.R(Rx),
 	.G(Gx),
 	.B(Bx),
+`else
+	.R(R_OSD[7:5]),
+	.G(G_OSD[7:5]),
+	.B(B_OSD[7:5]),
+`endif		
 	.mono(ulap_ena & ulap_mono)
 );
 
@@ -804,7 +972,9 @@ video_mixer #(.LINE_LENGTH(896), .HALF_DEPTH(1)) video_mixer
 wire [11:1] Fn;
 wire  [2:0] mod;
 wire  [4:0] key_data;
+`ifndef CYCLONE
 keyboard kbd( .* );
+`endif
 
 reg   [5:0] joy_kempston;
 reg   [4:0] joy_sinclair1;
@@ -1199,4 +1369,41 @@ snap_loader #(ARCH_ZX48, ARCH_ZX128, ARCH_ZX3, ARCH_P128) snap_loader
 	.reg_7ffd(snap_7ffd)
 );
 
+`ifdef CYCLONE
+//CAMBIOS		
+wire dsk_wr;
+wire [18:0] dsk_addr_s;
+wire [7:0]  disk_data_s;
+
+wire        dsk_download  = ioctl_download && (ioctl_index[3:0] == 4'd1); //dsk 01, trd 81
+
+assign sram_addr    = (dsk_download) ? ioctl_addr[18:0]  : dsk_addr_s;
+assign sram_data    = (dsk_download) ? ioctl_dout 	: 8'bzzzzzzzz;
+assign disk_data_s  = sram_data;
+assign sram_we_n    = ~(dsk_download & ioctl_wr);
+assign sram_oe_n   = 1'b0;
+assign sram_lb_n   = 1'b0;
+assign sram_ub_n   = 1'b1;
+
+image_controller image_controller1
+(
+    
+		.clk_i			( clk_sys ),
+		.reset_i			( reset ),
+ 	 
+		.sd_lba			( sd_lba ), 
+		.sd_rd			( sd_rd ),
+		.sd_wr			( sd_wr ),
+
+		.sd_ack			( sd_ack ),
+		.sd_buff_addr	( sd_buff_addr ), 
+		.sd_buff_dout	( sd_buff_dout ), 
+		.sd_buff_din	( sd_buff_din ),
+		.sd_buff_wr		( sd_buff_wr ),
+		
+		.sram_addr_o  	( dsk_addr_s ),
+		.sram_data_i   ( disk_data_s )
+);
+		
+`endif
 endmodule
