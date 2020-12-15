@@ -278,8 +278,8 @@ wire [24:0] ps2_mouse;
 wire  [7:0] joystick_0;
 wire  [7:0] joystick_1;
 `else
-wire  [7:0] joystick_0 = ~{1'b11,joystick1};;
-wire  [7:0] joystick_1 = ~{1'b11,joystick2};;
+wire  [7:0] joystick_0 = ~{1'b11,joystick1};
+wire  [7:0] joystick_1 = ~{1'b11,joystick2};
 `endif
 
 wire  [1:0] buttons;
