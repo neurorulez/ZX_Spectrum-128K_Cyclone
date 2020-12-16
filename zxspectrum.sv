@@ -132,7 +132,8 @@ module zxspectrum
 );
 `default_nettype none
 
-assign LED = ~(ioctl_download | tape_led);
+//assign LED = ~(ioctl_download | tape_led);
+assign LED = ~plus3_fdd_ready & sd_busy_mmc;
 
 `ifdef CYCLONE
 assign stm_rst_o = 1'b0; 
@@ -181,6 +182,7 @@ wire [1:0] st_joy2        = status[4:3];
 wire [1:0] st_scanlines   = status[16:15];
 wire [1:0] st_mmc         = status[18:17];
 wire [1:0] st_gs_memory   = status[21:20];
+wire       st_fd_fast     = 1'b1; //1 = FD Rapido / 0 = FD Normal
 
 ////////////////////   CLOCKS   ///////////////////
 wire clk_sys;
@@ -1195,7 +1197,7 @@ u765 #(20'd1800,1) u765
 	.ready(plus3_fdd_ready),
 	.motor(motor_plus3),
 	.available(2'b01),
-	.fast(1),
+	.fast(st_fd_fast),
 	.nRD(~plus3_fdd | nIORQ | ~nM1 | nRD),
 	.nWR(~plus3_fdd | nIORQ | ~nM1 | nWR),
 	.din(cpu_dout),
@@ -1388,12 +1390,12 @@ assign sram_ub_n   = 1'b1;
 image_controller image_controller1
 (
     
-		.clk_i			( clk_sys ),
+		.clk_i			( ce_cpu ), //clk_sys ),
 		.reset_i			( reset ),
  	 
 		.sd_lba			( sd_lba ), 
-		.sd_rd			( sd_rd ),
-		.sd_wr			( sd_wr ),
+		.sd_rd			( {1'b0,sd_rd[1]} ),
+		.sd_wr			( {1'b0,sd_wr[1]} ),
 
 		.sd_ack			( sd_ack ),
 		.sd_buff_addr	( sd_buff_addr ), 

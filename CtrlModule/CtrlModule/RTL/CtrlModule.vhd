@@ -630,7 +630,8 @@ begin
 if rising_edge(clk) then
  host_loadrom_d <= host_loadrom;
  host_loadmed_d <= host_loadmed;
- if ( host_loadmed = '1' and (ioctl_index = x"01" or ioctl_index = x"81" ) ) then img_mounted <= "01"; else img_mounted <= "00"; end if;
+ --Montamos con "10" porque el "01" esta reservado para montar el ESXDOS
+ if ( host_loadmed = '1' and (ioctl_index = x"01" or ioctl_index = x"81" ) ) then img_mounted <= "10"; else img_mounted <= "00"; end if;
  if ( (host_loadmed = '0' and host_loadmed_d = '1') or (host_loadrom = '0' and host_loadrom_d = '1') ) then reset_address <= '1'; else reset_address <= '0'; end if;
 end if;
 end process;
