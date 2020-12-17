@@ -1390,7 +1390,7 @@ assign sram_ub_n   = 1'b1;
 image_controller image_controller1
 (
     
-		.clk_i			( ce_cpu ), //ce_14m  //clk_sys
+		.clk_i			( ce_14m),  //clk_sys
 		.reset_i			( reset ),
  	 
 		.sd_lba			( sd_lba ), 
