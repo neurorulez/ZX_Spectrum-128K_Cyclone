@@ -608,14 +608,16 @@ status(31 downto 22) <= (others => '0');
 debug <= '1' when ioctl_index = X"04" else '0';
 
 ioctl_index <= X"00" when host_loadrom = '1' else
-               X"01" when extension(23 downto 0)  = x"545244" else --DISK   - trd
-               X"81" when extension(23 downto 0)  = x"44534B" else --DISK   - dsk
+               X"01" when extension(23 downto 0)  = x"545244" else --DISK   - trd (Beta 128 Interface)
+				X"41" when extension(23 downto 0)  = x"494D47" else --DISK   - img (+D Interface)					
+				X"41" when extension(23 downto 0)  = x"4d4754" else --DISK	 - mgt (+D Interface)
+               X"81" when extension(23 downto 0)  = x"44534B" else --DISK   - dsk (PLUS3 3" Discs)
 			      X"02" when extension(23 downto 0)  = x"544150" else --TAPE   - tap
 			      X"42" when extension(23 downto 0)  = x"435357" else --TAPE   - csw
 					X"82" when extension(23 downto 0)  = x"545a58" else --TAPE   - tzx
-					X"03" when extension(23 downto 0)  = x"5a3830" else --SNAP   - z80			      
-					X"43" when extension(23 downto 0)  = x"534e41" else --SNAP   - sna								
-			      X"FF";
+					X"03" when extension(23 downto 0)  = x"5a3830" else --SNAP   - z80
+					X"43" when extension(23 downto 0)  = x"534e41" else --SNAP   - sna
+					X"FF";
 					
 ioctl_start_addr <= --x"150000" when host_loadrom = '1' else
 						  --x"200000" when host_loadmed = '1' and (extension(23 downto 0)  = x"545244" or extension(23 downto 0)  = x"44534B") else  --dsk o trd
@@ -631,7 +633,7 @@ if rising_edge(clk) then
  host_loadrom_d <= host_loadrom;
  host_loadmed_d <= host_loadmed;
  --Montamos con "10" porque el "01" esta reservado para montar el ESXDOS
- if ( host_loadmed = '1' and (ioctl_index = x"01" or ioctl_index = x"81" ) ) then img_mounted <= "10"; else img_mounted <= "00"; end if;
+ if ( host_loadmed = '1' and ioctl_index(3 downto 0) = x"1" ) then img_mounted <= "10"; else img_mounted <= "00"; end if;
  if ( (host_loadmed = '0' and host_loadmed_d = '1') or (host_loadrom = '0' and host_loadrom_d = '1') ) then reset_address <= '1'; else reset_address <= '0'; end if;
 end if;
 end process;
@@ -645,8 +647,8 @@ begin
  end if;
 end process;
 
-media_ce <= rclkD and not rclkD2 when extension(23 downto 0) = x"434454" else 
-				ioctl_ce;
+media_ce <= ioctl_ce; --rclkD and not rclkD2;-- when extension(23 downto 0) = x"434454" else 
+				          --ioctl_ce;
 
 process(clk, host_bootdata_req, ioctl_ce, reset_address, media_ce)
 begin

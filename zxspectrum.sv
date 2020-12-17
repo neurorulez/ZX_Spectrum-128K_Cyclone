@@ -133,7 +133,7 @@ module zxspectrum
 `default_nettype none
 
 //assign LED = ~(ioctl_download | tape_led);
-assign LED = ~plus3_fdd_ready & sd_busy_mmc;
+assign LED = fdd_ready; //plus3; //~fdd_ready; //(fdd_ready & plusd_en & (sd_busy_mmc == 0));
 
 `ifdef CYCLONE
 assign stm_rst_o = 1'b0; 
@@ -1390,7 +1390,7 @@ assign sram_ub_n   = 1'b1;
 image_controller image_controller1
 (
     
-		.clk_i			( ce_cpu ), //clk_sys ),
+		.clk_i			( ce_cpu ), //ce_14m  //clk_sys
 		.reset_i			( reset ),
  	 
 		.sd_lba			( sd_lba ), 
