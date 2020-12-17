@@ -1379,7 +1379,7 @@ wire [7:0]  disk_data_s;
 
 wire        dsk_download  = ioctl_download && (ioctl_index[3:0] == 4'd1); //dsk 01, trd 81
 
-assign sram_addr    = (dsk_download) ? ioctl_addr[18:0]  : dsk_addr_s;
+assign sram_addr    = (dsk_download) ? ioctl_addr[19:0]  : dsk_addr_s;
 assign sram_data    = (dsk_download) ? ioctl_dout 	: 8'bzzzzzzzz;
 assign disk_data_s  = sram_data;
 assign sram_we_n    = ~(dsk_download & ioctl_wr);
