@@ -609,8 +609,8 @@ debug <= '1' when ioctl_index = X"04" else '0';
 
 ioctl_index <= X"00" when host_loadrom = '1' else
                X"01" when extension(23 downto 0)  = x"545244" else --DISK   - trd (Beta 128 Interface)
-				X"41" when extension(23 downto 0)  = x"494D47" else --DISK   - img (+D Interface)					
-				X"41" when extension(23 downto 0)  = x"4d4754" else --DISK	 - mgt (+D Interface)
+				   X"41" when extension(23 downto 0)  = x"494D47" else --DISK   - img (+D Interface)					
+				   X"C1" when extension(23 downto 0)  = x"4d4754" else --DISK	 - mgt (+D Interface)
                X"81" when extension(23 downto 0)  = x"44534B" else --DISK   - dsk (PLUS3 3" Discs)
 			      X"02" when extension(23 downto 0)  = x"544150" else --TAPE   - tap
 			      X"42" when extension(23 downto 0)  = x"435357" else --TAPE   - csw
@@ -647,8 +647,8 @@ begin
  end if;
 end process;
 
-media_ce <= ioctl_ce; --rclkD and not rclkD2;-- when extension(23 downto 0) = x"434454" else 
-				          --ioctl_ce;
+media_ce <= rclkD and not rclkD2 when extension(23 downto 0) = x"444154" else 
+				ioctl_ce;
 
 process(clk, host_bootdata_req, ioctl_ce, reset_address, media_ce)
 begin

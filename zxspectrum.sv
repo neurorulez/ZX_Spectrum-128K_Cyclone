@@ -127,13 +127,13 @@ module zxspectrum
 	output wire VGA_BLANK, //Reloaded
 	output wire VGA_CLOCK, //Reloaded
 
-	output wire stm_rst_o
+	output wire stm_rst_o = 1'b0
 `endif	
 );
 `default_nettype none
 
-//assign LED = ~(ioctl_download | tape_led);
-assign LED = fdd_ready; //plus3; //~fdd_ready; //(fdd_ready & plusd_en & (sd_busy_mmc == 0));
+assign LED = ~(ioctl_download | tape_led);
+//assign LED = fdd_ready; //plus3; //~fdd_ready; //(fdd_ready & plusd_en & (sd_busy_mmc == 0));
 
 `ifdef CYCLONE
 assign stm_rst_o = 1'b0; 
@@ -621,7 +621,7 @@ always @(posedge clk_sys) begin
 		sdram_din <= ram_din;
 
 		casex({dma, tape_req})
-			'b1X: sdram_addr <= ioctl_addr + (ioctl_index == 0 ? ROM_ADDR : ioctl_index == 2 ? TAPE_ADDR : SNAP_ADDR);
+			'b1X: sdram_addr <= ioctl_addr + (ioctl_index == 0 ? ROM_ADDR : ioctl_index == 2 ? TAPE_ADDR : ioctl_index == 3 ? SNAP_ADDR : 0);
 			'b01: sdram_addr <= tape_addr + TAPE_ADDR;
 			'b00: sdram_addr <= ram_addr;
 		endcase;
@@ -1374,7 +1374,7 @@ snap_loader #(ARCH_ZX48, ARCH_ZX128, ARCH_ZX3, ARCH_P128) snap_loader
 `ifdef CYCLONE
 //CAMBIOS		
 wire dsk_wr;
-wire [18:0] dsk_addr_s;
+wire [19:0] dsk_addr_s;
 wire [7:0]  disk_data_s;
 
 wire        dsk_download  = ioctl_download && (ioctl_index[3:0] == 4'd1); //dsk 01, trd 81
@@ -1390,7 +1390,7 @@ assign sram_ub_n   = 1'b1;
 image_controller image_controller1
 (
     
-		.clk_i			( ce_cpu ), //ce_14m  //clk_sys
+		.clk_i			( ce_14m ), //ce_14m  //ce_cpu //clk_sys
 		.reset_i			( reset ),
  	 
 		.sd_lba			( sd_lba ), 
