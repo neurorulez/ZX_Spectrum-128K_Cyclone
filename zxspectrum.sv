@@ -621,7 +621,7 @@ always @(posedge clk_sys) begin
 		sdram_din <= ram_din;
 
 		casex({dma, tape_req})
-			'b1X: sdram_addr <= ioctl_addr + (ioctl_index == 0 ? ROM_ADDR : ioctl_index == 2 ? TAPE_ADDR : ioctl_index == 3 ? SNAP_ADDR : 0);
+			'b1X: sdram_addr <= ioctl_addr + (ioctl_index == 0 ? ROM_ADDR : ioctl_index == 2 ? TAPE_ADDR : SNAP_ADDR);
 			'b01: sdram_addr <= tape_addr + TAPE_ADDR;
 			'b00: sdram_addr <= ram_addr;
 		endcase;

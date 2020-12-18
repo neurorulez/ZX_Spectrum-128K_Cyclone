@@ -222,7 +222,14 @@ static int LoadMED(const char *filename)
 				for(i=0;i<512;i+=4)
 				{
 					unsigned int t=*p++;
-					HW_HOST(REG_HOST_BOOTDATA)=t;
+					unsigned char t1=t;
+					unsigned char t2=t>>8;
+					unsigned char t3=t>>16;
+					unsigned char t4=t>>24;
+					HW_HOST(REG_HOST_BOOTDATA)=t4;
+					HW_HOST(REG_HOST_BOOTDATA)=t3;
+					HW_HOST(REG_HOST_BOOTDATA)=t2;
+					HW_HOST(REG_HOST_BOOTDATA)=t1;
 				}
 			}
 			else
@@ -285,7 +292,14 @@ static int LoadROM(const char *filename)
 				for(i=0;i<512;i+=4)
 				{
 					unsigned int t=*p++;
-					HW_HOST(REG_HOST_BOOTDATA)=t;
+					unsigned char t1=t;
+					unsigned char t2=t>>8;
+					unsigned char t3=t>>16;
+					unsigned char t4=t>>24;
+					HW_HOST(REG_HOST_BOOTDATA)=t4;
+					HW_HOST(REG_HOST_BOOTDATA)=t3;
+					HW_HOST(REG_HOST_BOOTDATA)=t2;
+					HW_HOST(REG_HOST_BOOTDATA)=t1;
 				}
 			}
 			else

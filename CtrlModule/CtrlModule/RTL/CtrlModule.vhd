@@ -647,7 +647,7 @@ begin
  end if;
 end process;
 
-media_ce <= rclkD and not rclkD2 when extension(23 downto 0) = x"444154" else 
+media_ce <= rclkD and not rclkD2 when extension(23 downto 0) = x"534e41" else 
 				ioctl_ce;
 
 process(clk, host_bootdata_req, ioctl_ce, reset_address, media_ce)
@@ -664,11 +664,13 @@ begin
 			case boot_state is
 				when idle =>
 					if (host_bootdata_req='1' and media_ce = '1') then 
-						if    ram_step = 0 then ioctl_dout<=host_bootdata(31 downto 24); ram_step <= ram_step + 1; 
-						elsif ram_step = 1 then ioctl_dout<=host_bootdata(23 downto 16); ram_step <= ram_step + 1; 
-						elsif ram_step = 2 then ioctl_dout<=host_bootdata(15 downto  8); ram_step <= ram_step + 1; 
-						elsif ram_step = 3 then ioctl_dout<=host_bootdata(7  downto  0); ram_step <= 0; host_bootdata_ack<='1'; end if;
+						--if    ram_step = 0 then ioctl_dout<=host_bootdata(31 downto 24); ram_step <= ram_step + 1; 
+						--elsif ram_step = 1 then ioctl_dout<=host_bootdata(23 downto 16); ram_step <= ram_step + 1; 
+						--elsif ram_step = 2 then ioctl_dout<=host_bootdata(15 downto  8); ram_step <= ram_step + 1; 
+						--elsif ram_step = 3 then ioctl_dout<=host_bootdata(7  downto  0); ram_step <= 0; host_bootdata_ack<='1'; end if;
+						ioctl_dout<=host_bootdata(7 downto 0);
 						ioctl_wr<='1';
+						host_bootdata_ack<='1';
 						boot_state<=ramwait;
 					end if;					
 				when ramwait =>
