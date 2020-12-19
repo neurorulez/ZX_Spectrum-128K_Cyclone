@@ -138,9 +138,11 @@ signal spi_busy : std_logic;
 signal spi_active : std_logic;
 
 		-- Boot upload signals
-signal host_bootdata     : std_logic_vector(31 downto 0);
-signal host_bootdata_req : std_logic;
-signal host_bootdata_ack : std_logic :='0';
+signal host_bootdata       : std_logic_vector(31 downto 0);
+signal host_bootdata_adr   : std_logic_vector(24 downto 0);
+signal host_bootdata_adr_W : std_logic_vector(24 downto 0);
+signal host_bootdata_req   : std_logic;
+signal host_bootdata_ack   : std_logic :='0';
 
 signal		host_divert_sdcard : std_logic;
 signal		host_divert_keyboard :std_logic;
@@ -152,6 +154,7 @@ signal		host_loadrom_d : std_logic := '0';
 signal		host_loadmed   : std_logic := '0';		
 signal		host_loadmed_d : std_logic := '0';	
 signal      reset_address  : std_logic;		
+signal		host_download  : std_logic := '0';		
 
 type boot_states is (idle, ramwait);
 signal boot_state : boot_states := idle;
@@ -165,10 +168,11 @@ signal ram_wr  : std_logic := '0';
 signal dipswitches : std_logic_vector(15 downto 0);
 signal size : std_logic_vector(31 downto 0);
 signal extension : std_logic_vector(31 downto 0);
-signal ioctl_start_addr     : std_logic_vector(23 downto 0) := x"150000"; --Direccion de la ROM para el estado incial
+signal ioctl_start_addr     : std_logic_vector(23 downto 0); --Direccion de la ROM para el estado incial
 signal ioctl_addr_s     : std_logic_vector(24 downto 0);
 signal rclkD  : std_logic := '0';
 signal rclkD2 : std_logic := '0';
+signal rdownload : std_logic := '0';
 signal media_ce : std_logic := '0';
 
 signal ps2_int : std_logic := '0';
@@ -363,8 +367,11 @@ begin
 		host_loadmed <='0';
 		host_video <= '0';
 		host_bootdata_req<='0';
+		host_bootdata_adr <= "0000000000000000000000000";
 		spi_active<='0';
 		spi_cs<='1';
+	elsif reset_address = '1' then
+		host_bootdata_adr <= "0000000000000000000000000";
 	elsif rising_edge(clk) then
 		mem_busy<='1';
 		osd_charwr<='0';
@@ -404,8 +411,10 @@ begin
 
 						when X"E8" => -- Host boot data
 							-- Note that we don't clear mem_busy here; it's set instead when the ack signal comes in.
+							host_bootdata_adr_W<=host_bootdata_adr;
 							host_bootdata<=mem_write;
-							host_bootdata_req<='1';
+							host_bootdata_adr<=std_logic_vector(unsigned(host_bootdata_adr) + 1);
+							host_bootdata_req<=not host_bootdata_req;
 
 						when X"EC" => -- Host control
 							mem_busy<='0';
@@ -493,7 +502,7 @@ begin
 		-- Boot data termination - allow CPU to proceed once boot data is acknowleged:
 		if host_bootdata_ack='1' then
 			mem_busy<='0';
-			host_bootdata_req<='0';
+			--host_bootdata_req<='0';
 		end if;
 
 		
@@ -584,7 +593,7 @@ begin
 	end if;
 end process;
 	
-ioctl_download <= host_loadrom or host_loadmed;
+--ioctl_download <= host_loadrom or host_loadmed;
  
 ioctl_file_ext(31 DOWNTO 0) <=  extension; --X"2E444154";
 img_size <= x"00000000" & size; 
@@ -619,14 +628,16 @@ ioctl_index <= X"00" when host_loadrom = '1' else
 					X"43" when extension(23 downto 0)  = x"534e41" else --SNAP   - sna
 					X"FF";
 					
-ioctl_start_addr <= --x"150000" when host_loadrom = '1' else
+--ioctl_start_addr <= --x"150000" when host_loadrom = '1' else
 						  --x"200000" when host_loadmed = '1' and (extension(23 downto 0)  = x"545244" or extension(23 downto 0)  = x"44534B") else  --dsk o trd
 						  --x"400000" when host_loadmed = '1' and (extension(23 downto 0)  = x"544150" or extension(23 downto 0)  = x"545a58" or extension(23 downto 0)  = x"435357") else  --tap o tzx o csw
 						  --x"600000" when host_loadmed = '1' and (extension(23 downto 0)  = x"5a3830" or extension(23 downto 0)  = x"534e41") else  --tap o tzx						  
-						  x"000000";
+--						  x"000000";
 						  
-ioctl_addr <= std_logic_vector(unsigned(ioctl_addr_s) + unsigned(ioctl_start_addr));
+--ioctl_addr <= std_logic_vector(unsigned(ioctl_addr_s) + unsigned(ioctl_start_addr));
 
+--ioctl_download<=host_loadrom or host_loadmed; --host_download; --host_loadrom or host_loadmed;
+host_download<=host_loadrom or host_loadmed;
 process(clk, host_loadrom, host_loadmed)
 begin
 if rising_edge(clk) then
@@ -642,44 +653,55 @@ end process;
 process(clk)
 begin 
  if rising_edge(clk) then
-  rclkD <= spiclk_in;
-  rclkD2 <= rclkD;
+  if ioctl_ce = '1' or ioctl_index(3 downto 0) = x"1" then --Para la carga a SRAM no tiene que usar el "ioctl_ce"
+   rclkD <= host_bootdata_req;
+   rclkD2 <= rclkD;
+   ioctl_wr <= '0';
+   host_bootdata_ack<='0';
+   ioctl_download<=host_download;
+   if (rclkD /= rclkD2) then
+	 ioctl_dout<=host_bootdata(7 downto 0);
+	 ioctl_addr<=host_bootdata_adr_W;
+	 ioctl_wr<='1';
+	 host_bootdata_ack<='1';
+   end if; 
+  end if;
  end if;
 end process;
 
-media_ce <= rclkD and not rclkD2 when extension(23 downto 0) = x"534e41" else 
-				ioctl_ce;
-
-process(clk, host_bootdata_req, ioctl_ce, reset_address, media_ce)
-begin
-	if rising_edge(clk) then
-		if reset_n='0' or reset_address='1' then
-			ioctl_addr_s <= "0000000000000000000000000";
-			ioctl_wr <= '0';
-			host_bootdata_ack<='0';
-			boot_state<=idle;
-			ram_step <= 0;
-		else
-			host_bootdata_ack<='0';
-			case boot_state is
-				when idle =>
-					if (host_bootdata_req='1' and media_ce = '1') then 
+--media_ce <= rclkD and not rclkD2 when extension(23 downto 0) = x"534e41" else 
+--				ioctl_ce;
+--
+--process(clk, host_bootdata_req, ioctl_ce, reset_address, media_ce)
+--begin
+--	if rising_edge(clk) then
+--		if reset_n='0' or reset_address='1' then
+--			ioctl_addr_s <= "0000000000000000000000000";
+--			ioctl_wr <= '0';
+--			host_bootdata_ack<='0';
+--			boot_state<=idle;
+--			ram_step <= 0;
+--		else
+--			host_bootdata_ack<='0';
+--			case boot_state is
+--				when idle =>
+--					if (host_bootdata_req='1' and media_ce = '1') then 
 						--if    ram_step = 0 then ioctl_dout<=host_bootdata(31 downto 24); ram_step <= ram_step + 1; 
 						--elsif ram_step = 1 then ioctl_dout<=host_bootdata(23 downto 16); ram_step <= ram_step + 1; 
 						--elsif ram_step = 2 then ioctl_dout<=host_bootdata(15 downto  8); ram_step <= ram_step + 1; 
 						--elsif ram_step = 3 then ioctl_dout<=host_bootdata(7  downto  0); ram_step <= 0; host_bootdata_ack<='1'; end if;
-						ioctl_dout<=host_bootdata(7 downto 0);
-						ioctl_wr<='1';
-						host_bootdata_ack<='1';
-						boot_state<=ramwait;
-					end if;					
-				when ramwait =>
-						ioctl_addr_s<=std_logic_vector((unsigned(ioctl_addr_s)+1));
-						ioctl_wr<='0';						
-						boot_state<=idle;
-			end case;
-		end if;
-	end if;
-end process;
+--						ioctl_dout<=host_bootdata(7 downto 0);
+--						ioctl_wr<='1';
+--						host_bootdata_ack<='1';
+--						boot_state<=ramwait;
+--					end if;					
+--				when ramwait =>
+--						ioctl_addr_s<=std_logic_vector((unsigned(ioctl_addr_s)+1));
+--						ioctl_wr<='0';						
+--						boot_state<=idle;
+--			end case;
+--		end if;
+--	end if;
+--end process;
 	
 end architecture;
