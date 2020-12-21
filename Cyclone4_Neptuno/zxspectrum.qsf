@@ -455,6 +455,8 @@ set_global_assignment -name VERILOG_MACRO "CYCLONE=1"
 
 # end ENTITY(zxspectrum)
 # ----------------------
+set_global_assignment -name SYSTEMVERILOG_FILE ../keyboard.sv
+set_global_assignment -name VHDL_FILE ../CtrlModule/CtrlModule/RTL/io_ps2_out.vhd
 set_global_assignment -name VHDL_FILE ../vol_table_array.vhd
 set_global_assignment -name VHDL_FILE ../YM2149.vhd
 set_global_assignment -name SYSTEMVERILOG_FILE ../snap_loader.sv
@@ -475,9 +477,7 @@ set_global_assignment -name VERILOG_FILE ../CtrlModule/modules/joydecoder_neptun
 set_global_assignment -name SYSTEMVERILOG_FILE ../CtrlModule/modules/image_controller.sv
 set_global_assignment -name VHDL_FILE ../CtrlModule/modules/audio_i2s.vhd
 set_global_assignment -name VHDL_FILE ../CtrlModule/modules/ps2me.vhd
-set_global_assignment -name VHDL_FILE ../CtrlModule/modules/keymaps.vhd
 set_global_assignment -name VHDL_FILE ../CtrlModule/modules/ps2_intf.vhd
-set_global_assignment -name VHDL_FILE ../CtrlModule/modules/keyboard.vhd
 set_global_assignment -name VERILOG_FILE pll.v
 set_global_assignment -name VERILOG_FILE ../sys/scandoubler.v
 set_global_assignment -name VERILOG_FILE ../sys/osd.v

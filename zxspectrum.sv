@@ -373,12 +373,8 @@ data_io data_io
 	
 	.ps2k_clk_in(ps2_clk),
 	.ps2k_dat_in(ps2_data),
+	.ps2_key(ps2_key),
 	.host_scandoubler_disable(host_scandoubler_disable),
-
-	.kb_rows			( addr[15:8] ),
-	.kb_cols			( key_data   ),
-	.kb_teclasF		( Fn         ),
-	.kb_mod  		( mod        ),
 	
 `ifndef JOYDC
 	.JOY_CLK(JOY_CLK),
@@ -974,9 +970,8 @@ video_mixer #(.LINE_LENGTH(896), .HALF_DEPTH(1)) video_mixer
 wire [11:1] Fn;
 wire  [2:0] mod;
 wire  [4:0] key_data;
-`ifndef CYCLONE
+
 keyboard kbd( .* );
-`endif
 
 reg   [5:0] joy_kempston;
 reg   [4:0] joy_sinclair1;

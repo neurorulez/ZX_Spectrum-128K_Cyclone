@@ -31,14 +31,10 @@ entity data_io is
 		-- PS/2 keyboard
 		ps2k_clk_in : in std_logic := '1';
 		ps2k_dat_in : in std_logic := '1';
-	   
+	   ps2_key     : out std_logic_vector(10 downto 0) := "00000000000";
+		
 		host_scandoubler_disable : buffer std_logic;
 		
-		kb_rows     : in    std_logic_vector(7 downto 0);
-      kb_cols     : out   std_logic_vector(4 downto 0);
-      kb_teclasF  : out   std_logic_vector(12 downto 1);
-      kb_mod      : out   std_logic_vector(2 downto 0) := "000";
-
 	   --Joystick
 		JOY_CLK    : out std_logic;
 		JOY_LOAD   : out std_logic;
@@ -292,7 +288,15 @@ port map (
 	recvByte => kbdrecvbyte
 );
 
-
+mykeyboardout : entity work.io_ps2_out
+port map
+(	
+	CLK      => clk, 
+	OSD_ENA  => host_divert_keyboard,
+	ps2_code => kbdrecvbyte(8 downto 1),
+	ps2_int  => kbdrecv,
+	ps2_key  => ps2_key
+);	
 -- SPI Timer
 process(clk)
 begin
@@ -348,15 +352,6 @@ int_triggers<=(0=>kbdrecv,
 					1=>vblank,
 					others => '0');
 
----- Detect vblank
---vblank<='1' when vga_vsync='0' and vga_vsync_d='1' else '0';
---process(clk,vga_vsync)
---begin
---	if rising_edge(clk) then
---		vga_vsync_d<=vga_vsync;
---	end if;
---end process;
-	
 process(clk,reset_n)
 begin
 	if reset_n='0' then
@@ -541,19 +536,6 @@ port map
 		scanline_ena => '0'
 	);
 
-Keyboard : entity work.Keyboard
-port map
-(
-  CLK      => clk, 
-  nRESET   => reset_n,
-  PS2_CLK  => ps2k_clk_in and not host_divert_keyboard,
-  PS2_DATA => ps2k_dat_in,
-  rows     => kb_rows,
-  cols     => kb_cols,
-  teclasF  => kb_teclasF,
-  mod_o    => kb_mod
-);  
-  
 joyystick : joydecoder 
 port map
 (
