@@ -163,6 +163,10 @@ set_location_assignment PIN_M20 -to ps2_data
 set_location_assignment PIN_N20 -to ps2_mouse_clk
 set_location_assignment PIN_N19 -to ps2_mouse_data
 
+set_location_assignment PIN_A15 -to JOY_SELECT
+
+#EAR_IN
+set_location_assignment PIN_A20 -to UART_RX
 
 set_location_assignment PIN_B16 -to joystick1[0]
 set_location_assignment PIN_B17 -to joystick1[1]
