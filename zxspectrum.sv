@@ -489,20 +489,24 @@ always @(posedge clk_sys) begin
 end
 
 reg  NMI;
+reg  NMI_old;
+reg  NMI_pending;
 reg  reset;
 reg  cold_reset_btn;
 reg  warm_reset_btn;
 reg  shdw_reset_btn;
+reg  auto_reset_btn;
 wire cold_reset = cold_reset_btn | init_reset;
 wire warm_reset = warm_reset_btn;
 wire shdw_reset = shdw_reset_btn & ~plus3;
+wire auto_reset = auto_reset_btn;
 
 always @(posedge clk_sys) begin
 	reg old_F11;
 
 	old_F11 <= Fn[11];
 
-	reset <= buttons[1] | status[0] | cold_reset | warm_reset | shdw_reset | snap_reset | Fn[10];
+	reset <= buttons[1] | status[0] | cold_reset | warm_reset | shdw_reset | snap_reset | auto_reset;
 
 	if(reset | ~Fn[11]) NMI <= 0;
 	else if(~old_F11 & Fn[11] & (mod[2:1] == 0)) NMI <= 1;
@@ -510,12 +514,20 @@ always @(posedge clk_sys) begin
 	cold_reset_btn <= (mod[2:1] == 1) & Fn[11];
 	warm_reset_btn <= (mod[2:1] == 2) & Fn[11];
 	shdw_reset_btn <= (mod[2:1] == 3) & Fn[11];
+	auto_reset_btn <= Fn[10];
 end
 
 always @(posedge clk_sys) begin
 	old_rd <= io_rd;
 	old_wr <= io_wr;
 	old_m1 <= m1;
+	NMI_old <= NMI;
+end
+
+always @(posedge clk_sys) begin
+	if (reset) NMI_pending <= 0;
+	else if (~NMI_old & NMI) NMI_pending <= 1;
+	else if (~m1 && old_m1 && (addr == 'h66)) NMI_pending <= 0;
 end
 
 //////////////////   MEMORY   //////////////////
@@ -746,9 +758,15 @@ always_comb begin
 	endcase
 end
 
+reg  shdw_reset_r;
+reg  auto_reset_r;
+
 always @(posedge clk_sys) begin
 	reg old_reset;
 	reg [2:0] rmod;
+
+	shdw_reset_r <= shdw_reset;
+	auto_reset_r <= auto_reset;
 
 	old_reset <= reset;
 	if(~old_reset & reset) rmod <= mod;
@@ -759,10 +777,10 @@ always @(posedge clk_sys) begin
 		page_reg_plus3 <= 0; 
 		page_reg_p1024 <= 0;
 		page_128k   <= 0;
-		page_reg[4] <= Fn[10];
-		page_reg_plus3[2] <= Fn[10];
-		shadow_rom <= shdw_reset & ~plusd_en;
-		if(Fn[10] && (rmod == 1)) begin
+		page_reg[4] <= auto_reset_r;
+		page_reg_plus3[2] <= auto_reset_r;
+		shadow_rom <= shdw_reset_r & ~plusd_en;
+		if(auto_reset_r && (rmod == 1)) begin
 			p1024  <= 0;
 			pf1024 <= 0;
 			zx48   <= ~plus3;
@@ -777,7 +795,7 @@ always @(posedge clk_sys) begin
 		if(snap_hw == ARCH_ZX3) page_reg_plus3 <= snap_1ffd;
 	end else begin
 		if(m1 && ~old_m1 && addr[15:14]) shadow_rom <= 0;
-		if(m1 && ~old_m1 && ~plusd_en && ~mod[0] && (addr == 'h66) && ~plus3) shadow_rom <= 1; 
+		if(m1 && ~old_m1 && ~plusd_en && ~mod[0] && NMI_pending && (addr == 'h66) && ~plus3) shadow_rom <= 1;
 
 		if(io_wr & ~old_wr) begin
 			if(page_write) begin
@@ -1033,7 +1051,7 @@ always @(posedge clk_sys) begin
 		if(mf128_port) mf128_en <= addr[7] & mf128_en;
 	end
 
-	if(~old_m1 & m1 & mod[0] & (addr == 'h66)) {mf128_mem, mf128_en} <= 2'b11;
+	if(~old_m1 & m1 & mod[0] & NMI_pending & (addr == 'h66)) {mf128_mem, mf128_en} <= 2'b11;
 end
 
 //////////////////   MMC   //////////////////
@@ -1132,7 +1150,7 @@ always @(posedge clk_sys) begin
 		if(~old_wr & io_wr  & (addr[7:0] == 'hEF) & plusd_ena) {fdd_side, fdd_drive1} <= {cpu_dout[7], cpu_dout[1:0] != 2};
 		if(~old_wr & io_wr  & (addr[7:0] == 'hE7)) plusd_mem <= 0;
 		if(~old_rd & io_rd  & (addr[7:0] == 'hE7) & ~plusd_stealth) plusd_mem <= 1;
-		if(~old_m1 & m1 & ((addr == 'h08) | (addr == 'h3A) | (~mod[0] & (addr == 'h66)))) {psg_reset,plusd_mem} <= {(addr == 'h66), 1'b1};
+		if(~old_m1 & m1 & ((addr == 'h08) | (addr == 'h3A) | (~mod[0] & NMI_pending & (addr == 'h66)))) {psg_reset,plusd_mem} <= {(addr == 'h66), 1'b1};
 	end else begin
 		plusd_mem <= 0;
 		if(~old_wr & io_wr & fdd_sel & addr[7]) {fdd_side, fdd_reset, fdd_drive1} <= {~cpu_dout[4], ~cpu_dout[2], !cpu_dout[1:0]};
@@ -1226,7 +1244,7 @@ wire        tape_vin;
 smart_tape tape
 (
 	.*,
-	.reset(reset & ~Fn[10]),
+	.reset(reset & ~auto_reset_r),
 	.ce(ce_tape),
 
 	.turbo(tape_turbo),
