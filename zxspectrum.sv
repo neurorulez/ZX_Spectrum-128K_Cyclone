@@ -101,11 +101,11 @@ module zxspectrum
 	output wire	JOY_CLK,
 	output wire	JOY_LOAD,
 	input  wire JOY_DATA,
-	output wire JOY_SELECT,
 `else
 	input	wire [5:0]joystick1,
 	input	wire [5:0]joystick2,
 `endif	
+	output wire JOY_SELECT,
 	// Audio
 	output wire	AUDIO_L,
 	output wire	AUDIO_R,
@@ -282,6 +282,7 @@ wire  [7:0] joystick_1;
 `else
 wire  [7:0] joystick_0 = ~{1'b11,joystick1};
 wire  [7:0] joystick_1 = ~{1'b11,joystick2};
+assign JOY_SELECT = 1'b1;
 `endif
 
 wire  [1:0] buttons;
