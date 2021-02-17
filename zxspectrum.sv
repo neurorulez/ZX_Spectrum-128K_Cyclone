@@ -1387,16 +1387,16 @@ snap_loader #(ARCH_ZX48, ARCH_ZX128, ARCH_ZX3, ARCH_P128) snap_loader
 
 `ifdef CYCLONE
 //CAMBIOS		
-wire dsk_wr;
+wire disk_we_s;
 wire [19:0] dsk_addr_s;
-wire [7:0]  disk_data_s;
+wire [7:0]  disk_data_s,disk_data_wr_s;
 
 wire        dsk_download  = ioctl_download && (ioctl_index[3:0] == 4'd1); //dsk 01, trd 81
 
-assign sram_addr    = (dsk_download) ? ioctl_addr[19:0]  : dsk_addr_s;
-assign sram_data    = (dsk_download) ? ioctl_dout 	: 8'bzzzzzzzz;
+assign sram_addr    = dsk_download ? ioctl_addr[19:0]  : dsk_addr_s;
+assign sram_data    = dsk_download ? ioctl_dout 	    : disk_we_s ? disk_data_wr_s : 8'bzzzzzzzz;
 assign disk_data_s  = sram_data;
-assign sram_we_n    = ~(dsk_download & ioctl_wr);
+assign sram_we_n   = dsk_download ? ~ioctl_wr : ~disk_we_s;
 assign sram_oe_n   = 1'b0;
 assign sram_lb_n   = 1'b0;
 assign sram_ub_n   = 1'b1;
@@ -1418,7 +1418,9 @@ image_controller image_controller1
 		.sd_buff_wr		( sd_buff_wr ),
 		
 		.sram_addr_o  	( dsk_addr_s ),
-		.sram_data_i   ( disk_data_s )
+		.sram_data_i   ( disk_data_s ),
+		.sram_data_o   ( disk_data_wr_s ),
+		.sram_we_o     ( disk_we_s )		
 );
 		
 `endif
