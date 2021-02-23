@@ -38,6 +38,11 @@ entity data_io is
 	   ps2_key     : out std_logic_vector(10 downto 0) := "00000000000";
 		
 		host_scandoubler_disable : buffer std_logic;
+
+		--PS/2 Mouse
+		ps2m_clk_in : in std_logic := '1';
+		ps2m_dat_in : in std_logic := '1';		
+		ps2_mouse   : out std_logic_vector(24 downto 0) := (others=>'0');
 		
 	   --Joystick
 		JOY_CLK    : out std_logic;
@@ -180,6 +185,25 @@ signal ps2_scan : std_logic_vector(7 downto 0);
 signal keys_s : std_logic_vector(7 downto 0);
 signal joystick1 : std_logic_vector(7 downto 0);
 signal joystick2 : std_logic_vector(7 downto 0);
+
+	COMPONENT ps2mouse
+		PORT
+		(
+			clk		  :	 IN  STD_LOGIC;
+         reset      :	 IN  STD_LOGIC;
+         ps2mdat    :	 IN  STD_LOGIC;
+         ps2mclk    :	 IN  STD_LOGIC;
+
+         sof        :	 IN  STD_LOGIC;
+         mou_emu    :    IN  STD_LOGIC_VECTOR(3 downto 0);
+
+         ps2_mouse     :    OUT STD_LOGIC_VECTOR(24 downto 0);
+         ps2_mouse_ext :    OUT STD_LOGIC_VECTOR(15 downto 0);
+
+         test_load   :	 IN  STD_LOGIC;
+         test_data   :   IN  STD_LOGIC_VECTOR(15 downto 0)
+		);
+	END COMPONENT;
 
 	COMPONENT joydecoder
 		PORT
@@ -539,6 +563,21 @@ port map
 		window_out => open,
 		scanline_ena => '0'
 	);
+
+mouse : ps2mouse	
+port map
+(
+  clk           => spiclk_in,
+  reset         => not reset_n,
+  ps2mclk       => ps2m_clk_in, 
+  ps2mdat       => ps2m_dat_in, 
+  sof           => '0',           --1=Mouse Joy Type emulation - 0=Normal Mouse
+  mou_emu       => "0000",        --0=Y axys - / 1=Y axys + / 2=X axys - / 3=X axys +
+  test_load     => '0',
+  test_data     => (others=>'0'),
+  ps2_mouse     => ps2_mouse,     --[7:0]buttons , [15:8]Mouse x , [23:16]mouse y,  [24]strobe
+  ps2_mouse_ext => open           -- 15:8 - reserved(additional buttons), 7:0 - wheel movements
+);
 
 joyystick : joydecoder 
 port map

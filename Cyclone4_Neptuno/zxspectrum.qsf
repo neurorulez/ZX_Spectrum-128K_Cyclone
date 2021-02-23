@@ -163,6 +163,8 @@ set_location_assignment PIN_B2 -to VGA_VS
 
 set_location_assignment PIN_N19 -to ps2_clk
 set_location_assignment PIN_N20 -to ps2_data
+set_location_assignment PIN_C21 -to ps2_mouse_clk
+set_location_assignment PIN_B21 -to ps2_mouse_data
 
 set_location_assignment PIN_A3 -to AUDIO_L
 set_location_assignment PIN_B4 -to AUDIO_R
@@ -477,6 +479,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../CtrlModule/modules/image_contr
 set_global_assignment -name VHDL_FILE ../CtrlModule/modules/audio_i2s.vhd
 set_global_assignment -name VHDL_FILE ../CtrlModule/modules/ps2me.vhd
 set_global_assignment -name VHDL_FILE ../CtrlModule/modules/ps2_intf.vhd
+set_global_assignment -name VERILOG_FILE ../CtrlModule/modules/ps2_mouse.v
 set_global_assignment -name VERILOG_FILE pll.v
 set_global_assignment -name VERILOG_FILE ../sys/scandoubler.v
 set_global_assignment -name VERILOG_FILE ../sys/osd.v

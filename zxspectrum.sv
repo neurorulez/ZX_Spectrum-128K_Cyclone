@@ -374,7 +374,10 @@ data_io data_io
 	
 	.ps2k_clk_in(ps2_clk),
 	.ps2k_dat_in(ps2_data),
+	.ps2m_clk_in(ps2_mouse_clk),
+	.ps2m_dat_in(ps2_mouse_data),
 	.ps2_key(ps2_key),
+	.ps2_mouse(ps2_mouse),
 	.host_scandoubler_disable(host_scandoubler_disable),
 	
 `ifndef JOYDC
